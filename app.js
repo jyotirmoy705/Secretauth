@@ -2,6 +2,7 @@ import express from "express";
 import ejs from "ejs";
 import pg from "pg";
 import bodyParser from "body-parser";
+import {} from "dotenv/config";
 
 const app = express();
 const port = 3000;
@@ -9,10 +10,15 @@ const db = new pg.Client({
     user: "postgres",
     host: "localhost",
     database: "jm1",
-    password: "638726",
+    password: process.env.PASSWORD,
     port: "5432"
 });
 db.connect();
+async function randomEncryption(){
+    const encryptionList = ['bf', 'des', 'xdes', 'md5']
+    let randomNumber = Math.floor(Math.random()*encryptionList.length);
+    return encryptionList[randomNumber];
+}
 
 async function secretPage() {
     const result = await db.query("select secret from secrets");
@@ -47,8 +53,9 @@ app.get("/login", (req, res) => {
 app.post("/register", async (req, res) => {
     const userName = req.body.username;
     const password = req.body.password;
+    const encryptionType = await randomEncryption();
     try {
-        await db.query("insert into users(email, access_key) values($1, crypt($2, gen_salt('bf')))", [userName, password]);
+        await db.query("insert into users(email, access_key) values($1, crypt($2, gen_salt($3)))", [userName, password, encryptionType]);
         res.render("login");
     } catch (error) {
         console.log(error);
