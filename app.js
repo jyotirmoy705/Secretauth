@@ -2,7 +2,10 @@ import express from "express";
 import ejs from "ejs";
 import pg from "pg";
 import bodyParser from "body-parser";
-import {} from "dotenv/config";
+import { } from "dotenv/config";
+import bcrypt from "bcrypt";
+
+const saltRounds = 10;
 
 const app = express();
 const port = 3000;
@@ -14,9 +17,9 @@ const db = new pg.Client({
     port: "5432"
 });
 db.connect();
-async function randomEncryption(){
+async function randomEncryption() {
     const encryptionList = ['bf', 'des', 'xdes', 'md5']
-    let randomNumber = Math.floor(Math.random()*encryptionList.length);
+    let randomNumber = Math.floor(Math.random() * encryptionList.length);
     return encryptionList[randomNumber];
 }
 
@@ -53,28 +56,37 @@ app.get("/login", (req, res) => {
 app.post("/register", async (req, res) => {
     const userName = req.body.username;
     const password = req.body.password;
-    const encryptionType = await randomEncryption();
-    try {
-        await db.query("insert into users(email, access_key) values($1, crypt($2, gen_salt($3)))", [userName, password, encryptionType]);
-        res.render("login");
-    } catch (error) {
-        console.log(error);
-        res.render("register");
-    }
+    bcrypt.genSalt(10, function (err, salt) {
+        bcrypt.hash(password, salt, async function (err, hash) {
+            // Store hash in your password DB.
+            try {
+                await db.query("insert into users(email, access_key) values($1, $2)", [userName, hash]);
+                res.render("login");
+            } catch (error) {
+                console.log(error);
+                res.render("register");
+            }
+        });
+    });
 });
 
 app.post("/login", async (req, res) => {
     const userName = req.body.username;
     const password = req.body.password;
+
     try {
-        const result = await db.query("select count(*) from users where email = $1 and access_key = crypt($2, access_key)", [userName, password]);
-        if (result.rows[0].count === '1') {
-            authenticated = true;
-            const secrets = await secretPage();
-            res.render("secrets", { secret: secrets });
-        } else {
-            res.render("login");
-        }
+        const retrive = await db.query("select email, access_key from users where email = $1 ", [userName]);
+        bcrypt.compare(password, retrive.rows[0].access_key, async function (err, result) {
+            // result == true
+            if (result) {
+                authenticated = true;
+                const secrets = await secretPage();
+                res.render("secrets", { secret: secrets });
+            } else {
+                res.render("login");
+            }
+        });
+
 
     } catch (error) {
         console.log(error);
