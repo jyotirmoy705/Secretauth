@@ -17,11 +17,6 @@ const db = new pg.Client({
     port: "5432"
 });
 db.connect();
-async function randomEncryption() {
-    const encryptionList = ['bf', 'des', 'xdes', 'md5']
-    let randomNumber = Math.floor(Math.random() * encryptionList.length);
-    return encryptionList[randomNumber];
-}
 
 async function secretPage() {
     const result = await db.query("select secret from secrets");
@@ -32,7 +27,7 @@ async function secretPage() {
     return secrets;
 }
 
-app.use(express.urlencoded({ extended: true }));
+app.use(bodyParser.urlencoded({ extended: true }));
 app.set('view engine', 'ejs');
 app.use(express.static('public'));
 let authenticated = false;
@@ -87,7 +82,6 @@ app.post("/login", async (req, res) => {
             }
         });
 
-
     } catch (error) {
         console.log(error);
         res.render("login");
@@ -109,8 +103,8 @@ app.post("/submit", async (req, res) => {
     await db.query("insert into secrets(secret) values($1)", [secret]);
     const secrets = await secretPage();
     res.render("secrets", { secret: secrets });
-})
+});
 
 app.listen(port, () => {
     console.log(`Your server started on port: ${port}`);
-})
+});
