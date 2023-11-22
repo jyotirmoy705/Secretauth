@@ -1,5 +1,8 @@
 <%- include('partials/header') %>
 <div class="container mt-5">
+  <% if (messages.failed_msg) { %>
+    <li><%= messages.failed_msg %></li>
+    <% } %>
   <h1>Register</h1>
 
   <div class="row">
@@ -11,15 +14,16 @@
           <form action="/register" method="POST">
             <div class="form-group">
               <label for="email">Email</label>
-              <input type="email" class="form-control" name="username">
+              <input type="email" class="form-control" name="username" required>
             </div>
             <div class="form-group">
               <label for="password">Password</label>
-              <input type="password" class="form-control" name="password">
+              <input type="password" class="form-control" name="password" required>
             </div>
             <button type="submit" class="btn btn-dark">Register</button>
           </form>
-
+          <br>
+          <a href="/login">Already Registered? Login</a>
         </div>
       </div>
     </div>
