@@ -1,13 +1,11 @@
 const express = require("express");
 const ejs = require("ejs");
-const { secretInsert } = require("./helper.js");
+const { secretInsert, secretList } = require("./helper.js");
 const bodyParser = require("body-parser");
-require("dotenv").config();
 const session = require("express-session");
 const passport = require("passport");
 const flash = require("express-flash");
 require("./passportconfig.js")(passport);
-const { db } = require("./dbconfig.js");
 
 const app = express();
 const port = 3000;
@@ -25,9 +23,9 @@ app.use(passport.session());
 app.use(flash());
 
 app.get("/", async (req, res) => {
-    if (req.isAuthenticated()){
+    if (req.isAuthenticated()) {
         res.redirect("/secrets")
-    }else{
+    } else {
         res.render("home");
     }
 });
@@ -44,16 +42,21 @@ app.get("/login", (req, res) => {
     res.render("login");
 });
 
-app.post("/login",passport.authenticate('local-login',{
+app.post("/login", passport.authenticate('local-login', {
     successRedirect: "/secrets",
     failureRedirect: "/login",
     failureFlash: true,
 }));
 app.get("/secrets", async (req, res) => {
-    const result = await db.query("select secret from secrets");
-    if (req.isAuthenticated()){
-        res.render("secrets",{secret: result.rows });
-    }else{
+    if (req.isAuthenticated()) {
+        try {
+            const result = await secretList(req.user.id);
+            res.render("secrets", { secret: result });
+        } catch (err) {
+            console.log(err);
+            res.render("secrets");
+        }
+    } else {
         res.redirect("/login");
     }
 });
@@ -62,20 +65,31 @@ app.get("/submit", (req, res) => {
     res.redirect("/login");
 });
 app.post("/submit", async (req, res) => {
-    if (req.isAuthenticated()){
-        const result = await secretInsert(req.body.secret);
-    res.redirect("/secrets");
-    }else{
+    if (req.isAuthenticated()) {
+        const result = await secretInsert(req.body.secret, req.user.id);
+        res.redirect("/secrets");
+    } else {
         res.redirect("/login");
     }
 });
-app.get("/logout", async (req, res)=>{
-    req.logout( (err)=>{
+app.get("/logout", async (req, res) => {
+    req.logout((err) => {
         if (err) return err;
         res.redirect("/");
     });
 });
 
+app.get("/auth/google", passport.authenticate("google", { scope: ["email", "profile"] }));
+
+app.get("/auth/google/secrets", passport.authenticate("google", {
+    successRedirect: "/secrets",
+    failureRedirect: "/login"
+}));
+app.get("/auth/facebook", passport.authenticate("facebook"));
+app.get("/auth/facebook/secrets", passport.authenticate("facebook", {
+    successRedirect: "/secrets",
+    failureRedirect: "/login"
+}));
 app.listen(port, () => {
     console.log(`Your server started on port: ${port}`);
 });
