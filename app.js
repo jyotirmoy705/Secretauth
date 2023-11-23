@@ -6,6 +6,7 @@ const session = require("express-session");
 const passport = require("passport");
 const flash = require("express-flash");
 require("./passportconfig.js")(passport);
+require("dotenv").config();
 
 const app = express();
 const port = 3000;
@@ -14,7 +15,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.set('view engine', 'ejs');
 app.use(express.static('public'));
 app.use(session({
-    secret: "any long string.",
+    secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false
 }));
